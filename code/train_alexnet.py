@@ -89,7 +89,7 @@ def get_ignored_params(model):
 def get_non_ignored_params(model):
     # Generator function that yields params that will be optimized.
     b = []
-    for idx in xrange(3, len(model.features)):
+    for idx in range(3, len(model.features)):
         b.append(model.features[idx])
     for layer in model.classifier:
         b.append(layer)
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     # Regression loss coefficient
     alpha = args.alpha
 
-    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = [idx for idx in range(66)]
     idx_tensor = Variable(torch.FloatTensor(idx_tensor)).cuda(gpu)
 
     optimizer = torch.optim.Adam([{

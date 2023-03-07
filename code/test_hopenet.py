@@ -88,7 +88,7 @@ if __name__ == '__main__':
     model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     total = 0
 
-    idx_tensor = [idx for idx in xrange(66)]
+    idx_tensor = [idx for idx in range(66)]
     idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
 
     yaw_error = .0
