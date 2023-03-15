@@ -143,7 +143,7 @@ if __name__ == '__main__':
     print('Loading data.')
 
     transformations = transforms.Compose([
-        transforms.Scale(240),
+        transforms.Resize(240),
         transforms.RandomCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     # Regression loss coefficient
     alpha = args.alpha
 
-    softmax = nn.Softmax().cuda(gpu)
+    softmax = nn.Softmax(dim=0).cuda(gpu)
     idx_tensor = [idx for idx in range(66)]
     idx_tensor = Variable(torch.FloatTensor(idx_tensor)).cuda(gpu)
 
@@ -230,6 +230,9 @@ if __name__ == '__main__':
             loss_roll = criterion(roll, label_roll)
 
             # MSE loss
+            # yaw_predicted = softmax(yaw, dim=1)
+            # pitch_predicted = softmax(pitch, dim=1)
+            # roll_predicted = softmax(roll, dim=1)
             yaw_predicted = softmax(yaw)
             pitch_predicted = softmax(pitch)
             roll_predicted = softmax(roll)
@@ -249,7 +252,10 @@ if __name__ == '__main__':
             loss_roll += alpha * loss_reg_roll
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
-            grad_seq = [torch.ones(1).cuda(gpu) for _ in range(len(loss_seq))]
+            grad_seq = [
+                torch.ones(1)[0].cuda(gpu) for _ in range(len(loss_seq))
+            ]
+
             optimizer.zero_grad()
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
@@ -258,8 +264,8 @@ if __name__ == '__main__':
                 print(
                     'Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
                     % (epoch + 1, num_epochs, i + 1,
-                       len(pose_dataset) // batch_size, loss_yaw.data[0],
-                       loss_pitch.data[0], loss_roll.data[0]))
+                       len(pose_dataset) // batch_size, loss_yaw.data.item(),
+                       loss_pitch.data.item(), loss_roll.data.item()))
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs:

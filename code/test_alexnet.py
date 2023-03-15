@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument('--save_viz',
                         dest='save_viz',
                         help='Save images with pose cube.',
-                        default=False,
+                        default=True,
                         type=bool)
     parser.add_argument('--dataset',
                         dest='dataset',
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     print('Loading data.')
 
     transformations = transforms.Compose([
-        transforms.Scale(224),
+        transforms.Resize(224),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],

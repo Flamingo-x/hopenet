@@ -5,3 +5,6 @@ output/*
 *.jpg
 *.png
 video/*
+cmd.txt
+test_cuda.py
+launch.json

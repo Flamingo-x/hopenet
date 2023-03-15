@@ -134,7 +134,7 @@ if __name__ == '__main__':
     print('Loading data.')
 
     transformations = transforms.Compose([
-        transforms.Scale(240),
+        transforms.Resize(240),
         transforms.RandomCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -217,9 +217,12 @@ if __name__ == '__main__':
             loss_roll = criterion(pre_roll, label_roll)
 
             # MSE loss
-            yaw_predicted = softmax(pre_yaw)
-            pitch_predicted = softmax(pre_pitch)
-            roll_predicted = softmax(pre_roll)
+            yaw_predicted = nn.Softmax(pre_yaw, dim=1)
+            pitch_predicted = nn.Softmax(pre_pitch, dim=1)
+            roll_predicted = nn.Softmax(pre_roll, dim=1)
+            # yaw_predicted = softmax(yaw)
+            # pitch_predicted = softmax(pitch)
+            # roll_predicted = softmax(roll)
 
             yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1) * 3 - 99
             pitch_predicted = torch.sum(pitch_predicted * idx_tensor,
