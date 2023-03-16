@@ -118,7 +118,7 @@ if __name__ == '__main__':
         sys.exit()
     test_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                               batch_size=args.batch_size,
-                                              num_workers=2)
+                                              num_workers=4)
 
     model.cuda(gpu)
 
@@ -135,9 +135,12 @@ if __name__ == '__main__':
     pitch_error = .0
     roll_error = .0
 
-    l1loss = torch.nn.L1Loss(size_average=False)
-
+    l1loss = torch.nn.L1Loss(reduction='sum')
+    cnt = 0
     for i, (images, labels, cont_labels, name) in enumerate(test_loader):
+        cnt += 1
+        if cnt == 300:
+            break
         images = Variable(images).cuda(gpu)
         total += cont_labels.size(0)
 
@@ -188,7 +191,14 @@ if __name__ == '__main__':
                             fontScale=1,
                             color=(0, 0, 255),
                             thickness=2)
-            # utils.plot_pose_cube(cv2_img, yaw_predicted[0], pitch_predicted[0], roll_predicted[0], size=100)
+            # utils.plot_pose_cube(cv2_img,
+            #                      yaw_predicted[0],
+            #                      pitch_predicted[0],
+            #                      roll_predicted[0],
+            #                      size=100)
+            print('yaw:', yaw_predicted, label_yaw)
+            print('pitch:', pitch_predicted, label_pitch)
+            print('roll:', roll_predicted, label_roll)
             utils.draw_axis(cv2_img,
                             yaw_predicted[0],
                             pitch_predicted[0],

@@ -182,7 +182,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(dataset=pose_dataset,
                                                batch_size=batch_size,
                                                shuffle=True,
-                                               num_workers=2)
+                                               num_workers=4)
 
     model.cuda(gpu)
     criterion = nn.CrossEntropyLoss().cuda(gpu)
@@ -190,7 +190,8 @@ if __name__ == '__main__':
     # Regression loss coefficient
     alpha = args.alpha
 
-    softmax = nn.Softmax(dim=0).cuda(gpu)
+    softmax = nn.Softmax().cuda(gpu)
+    # softmax = nn.Softmax(dim=0).cuda(gpu)
     idx_tensor = [idx for idx in range(66)]
     idx_tensor = Variable(torch.FloatTensor(idx_tensor)).cuda(gpu)
 
@@ -230,9 +231,6 @@ if __name__ == '__main__':
             loss_roll = criterion(roll, label_roll)
 
             # MSE loss
-            # yaw_predicted = softmax(yaw, dim=1)
-            # pitch_predicted = softmax(pitch, dim=1)
-            # roll_predicted = softmax(roll, dim=1)
             yaw_predicted = softmax(yaw)
             pitch_predicted = softmax(pitch)
             roll_predicted = softmax(roll)

@@ -217,12 +217,12 @@ if __name__ == '__main__':
             loss_roll = criterion(pre_roll, label_roll)
 
             # MSE loss
-            yaw_predicted = nn.Softmax(pre_yaw, dim=1)
-            pitch_predicted = nn.Softmax(pre_pitch, dim=1)
-            roll_predicted = nn.Softmax(pre_roll, dim=1)
-            # yaw_predicted = softmax(yaw)
-            # pitch_predicted = softmax(pitch)
-            # roll_predicted = softmax(roll)
+            # yaw_predicted = nn.Softmax(pre_yaw, dim=1)
+            # pitch_predicted = nn.Softmax(pre_pitch, dim=1)
+            # roll_predicted = nn.Softmax(pre_roll, dim=1)
+            yaw_predicted = softmax(pre_yaw)
+            pitch_predicted = softmax(pre_pitch)
+            roll_predicted = softmax(pre_roll)
 
             yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1) * 3 - 99
             pitch_predicted = torch.sum(pitch_predicted * idx_tensor,
@@ -239,7 +239,9 @@ if __name__ == '__main__':
             loss_roll += alpha * loss_reg_roll
 
             loss_seq = [loss_yaw, loss_pitch, loss_roll]
-            grad_seq = [torch.ones(1).cuda(gpu) for _ in range(len(loss_seq))]
+            grad_seq = [
+                torch.ones(1)[0].cuda(gpu) for _ in range(len(loss_seq))
+            ]
             torch.autograd.backward(loss_seq, grad_seq)
             optimizer.step()
 
@@ -247,8 +249,8 @@ if __name__ == '__main__':
                 print(
                     'Epoch [%d/%d], Iter [%d/%d] Losses: Yaw %.4f, Pitch %.4f, Roll %.4f'
                     % (epoch + 1, num_epochs, i + 1,
-                       len(pose_dataset) // batch_size, loss_yaw.data[0],
-                       loss_pitch.data[0], loss_roll.data[0]))
+                       len(pose_dataset) // batch_size, loss_yaw.data.item(),
+                       loss_pitch.data.item(), loss_roll.data.item()))
 
         # Save models at numbered epochs.
         if epoch % 1 == 0 and epoch < num_epochs:

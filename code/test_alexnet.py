@@ -133,9 +133,12 @@ if __name__ == '__main__':
     pitch_error = .0
     roll_error = .0
 
-    l1loss = torch.nn.L1Loss(size_average=False)
-
+    l1loss = torch.nn.L1Loss(reduction='sum')
+    cnt = 0
     for i, (images, labels, cont_labels, name) in enumerate(test_loader):
+        cnt += 1
+        if cnt == 300:
+            break
         images = Variable(images).cuda(gpu)
         total += cont_labels.size(0)
         label_yaw = cont_labels[:, 0].float()
