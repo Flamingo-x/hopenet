@@ -210,39 +210,64 @@ if __name__ == '__main__':
     print('Ready to train network.')
     for epoch in range(num_epochs):
         for i, (images, labels, cont_labels, name) in enumerate(train_loader):
+            # 每次处理一个batch的图片，图像为3*224*224
+            print('img_shape:', images.shape)
             images = Variable(images).cuda(gpu)
+            a = images.shape
+            print('images_shape:', a)
 
+            # 一个batch图像的欧拉角的分类区间
             # Binned labels
             label_yaw = Variable(labels[:, 0]).cuda(gpu)
             label_pitch = Variable(labels[:, 1]).cuda(gpu)
             label_roll = Variable(labels[:, 2]).cuda(gpu)
+            a = label_yaw.shape
 
+            print('label_yaw_shape:', a)
+
+            # 一个batch图像的欧拉角的具体值
             # Continuous labels
             label_yaw_cont = Variable(cont_labels[:, 0]).cuda(gpu)
             label_pitch_cont = Variable(cont_labels[:, 1]).cuda(gpu)
             label_roll_cont = Variable(cont_labels[:, 2]).cuda(gpu)
+            a = label_yaw_cont.shape
+            print('label_yaw_cont_shape:', a)
 
+            # 前向传播，获取预测值
             # Forward pass
             yaw, pitch, roll = model(images)
+            a = yaw.shape
+            print('yaw_shape:', a)
 
+            # 非连续欧拉角区间，相当于计算分类任务的交叉熵损失
             # Cross entropy loss
             loss_yaw = criterion(yaw, label_yaw)
             loss_pitch = criterion(pitch, label_pitch)
             loss_roll = criterion(roll, label_roll)
+            a = loss_yaw.shape
+            print('loss_yaw_shape:', a)
 
+            # 将预测值转换为概率分布
             # MSE loss
             yaw_predicted = softmax(yaw)
             pitch_predicted = softmax(pitch)
             roll_predicted = softmax(roll)
+            a = yaw_predicted.shape
+            print('roll_predicted_shape:', a)
 
             yaw_predicted = torch.sum(yaw_predicted * idx_tensor, 1) * 3 - 99
             pitch_predicted = torch.sum(pitch_predicted * idx_tensor,
                                         1) * 3 - 99
             roll_predicted = torch.sum(roll_predicted * idx_tensor, 1) * 3 - 99
+            a = yaw_predicted.shape
+            print('yaw_predicted_shape:', a)
 
+            # 正则化损失，均方差
             loss_reg_yaw = reg_criterion(yaw_predicted, label_yaw_cont)
             loss_reg_pitch = reg_criterion(pitch_predicted, label_pitch_cont)
             loss_reg_roll = reg_criterion(roll_predicted, label_roll_cont)
+            a = loss_reg_yaw.shape
+            print('loss_reg_yaw:', a)
 
             # Total loss
             loss_yaw += alpha * loss_reg_yaw

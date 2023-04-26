@@ -21,7 +21,6 @@ def get_list_from_filenames(file_path):
 
 
 class Synhead(Dataset):
-
     def __init__(self, data_dir, csv_path, transform, test=False):
         column_names = [
             'path', 'bbox_x_min', 'bbox_y_min', 'bbox_x_max', 'bbox_y_max',
@@ -263,7 +262,6 @@ class Pose_300W_LP_random_ds(Dataset):
 
 
 class AFLW2000(Dataset):
-
     def __init__(self,
                  data_dir,
                  filename_path,
@@ -460,7 +458,6 @@ class AFLW_aug(Dataset):
 
 
 class AFLW(Dataset):
-
     def __init__(self,
                  data_dir,
                  filename_path,
@@ -514,7 +511,6 @@ class AFLW(Dataset):
 
 
 class AFW(Dataset):
-
     def __init__(self,
                  data_dir,
                  filename_path,
@@ -578,7 +574,6 @@ class AFW(Dataset):
 
 
 class BIWI(Dataset):
-
     def __init__(self,
                  data_dir,
                  filename_path,

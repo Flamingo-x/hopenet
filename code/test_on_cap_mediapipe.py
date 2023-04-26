@@ -21,7 +21,6 @@ import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 from skimage import io
-import dlib
 
 if __name__ == '__main__':
     cudnn.enabled = True
@@ -29,11 +28,6 @@ if __name__ == '__main__':
     batch_size = 1
     gpu = 0
     snapshot_path = "C:\\Users\\Flamingo\\Desktop\\毕设\\code\\deep-head-pose\\output\\snapshots\\hopenet_robust_alpha1.pkl"
-    out_dir = 'output/video'
-    video_path = ""
-
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
 
     # ResNet50 structure
     model = hopenet.Hopenet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3],
@@ -101,9 +95,8 @@ if __name__ == '__main__':
                 ymin = int(bbox.ymin * img_h)
                 xmax = int(bbox.width * img_w + bbox.xmin * img_w)
                 ymax = int(bbox.height * img_h + bbox.ymin * img_h)
-                bbox_width = int(bbox.width)
-                bbox_height = int(bbox.height)
 
+                # 应该增加边界条件判断，防止坐标为负数或大于最大值，判断一下截取的图像形状，最好强行截成大的正方形，极端姿态下截不全人脸
                 bbox_width = abs(xmax - xmin)
                 bbox_height = abs(ymax - ymin)
                 xmin -= 2 * bbox_width / 4
