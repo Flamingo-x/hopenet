@@ -1,7 +1,8 @@
-import sys, os, argparse
+import sys
+import os
+import argparse
 import cv2
 import mediapipe as mp
-import numpy as np
 import time
 import math
 from scipy.spatial import distance
@@ -16,11 +17,13 @@ import torch.backends.cudnn as cudnn
 import torchvision
 import torch.nn.functional as F
 from PIL import Image
-import datasets, hopenet, utils
+import datasets
+import hopenet
+import utils
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-from skimage import io
+# from skimage import io
 
 if __name__ == '__main__':
     cudnn.enabled = True
@@ -72,6 +75,7 @@ if __name__ == '__main__':
                 # continue
                 continue
             image = cv2.flip(image, 1)
+
             img_h, img_w, img_c = image.shape
             # To improve performance, optionally mark the image as not writeable to
             image.flags.writeable = False
@@ -121,9 +125,9 @@ if __name__ == '__main__':
 
                 yaw, pitch, roll = model(img_RGB)
 
-                yaw_predicted = F.softmax(yaw)
-                pitch_predicted = F.softmax(pitch)
-                roll_predicted = F.softmax(roll)
+                yaw_predicted = F.softmax(yaw, dim=1)
+                pitch_predicted = F.softmax(pitch, dim=1)
+                roll_predicted = F.softmax(roll, dim=1)
                 # Get continuous predictions in degrees.
                 yaw_predicted = torch.sum(
                     yaw_predicted.data[0] * idx_tensor) * 3 - 99
@@ -132,7 +136,12 @@ if __name__ == '__main__':
                 roll_predicted = torch.sum(
                     roll_predicted.data[0] * idx_tensor) * 3 - 99
 
-                # utils.plot_pose_cube(frame, yaw_predicted, pitch_predicted, roll_predicted, (x_min + x_max) / 2, (y_min + y_max) / 2, size = bbox_width)
+                # utils.plot_pose_cube(image,
+                #                      yaw_predicted,
+                #                      pitch_predicted,
+                #                      roll_predicted, (xmin + xmax) / 2,
+                #                      (ymin + ymax) / 2,
+                #                      size=bbox_width)
                 utils.draw_axis(image,
                                 yaw_predicted,
                                 pitch_predicted,

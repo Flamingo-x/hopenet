@@ -1,0 +1,160 @@
+import sys
+import os
+import argparse
+import cv2
+import mediapipe as mp
+import time
+import math
+from scipy.spatial import distance
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+from torch.utils.data import DataLoader
+from torchvision import transforms
+import torch.backends.cudnn as cudnn
+import torchvision
+import torch.nn.functional as F
+from PIL import Image
+import datasets
+import hopenet
+import utils
+import os
+import onnxruntime as ort
+
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+# from skimage import io
+
+if __name__ == '__main__':
+    cudnn.enabled = True
+
+    gpu = 0
+
+    transformations = transforms.Compose([
+        transforms.Resize(224),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ])
+
+    sess_options = ort.SessionOptions()
+    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    ort_session = ort.InferenceSession(
+        'hopenet.onnx', providers=['CUDAExecutionProvider'], sess_options=sess_options)
+
+    total = 0
+
+    idx_tensor = [idx for idx in range(66)]
+    idx_tensor = torch.FloatTensor(idx_tensor).cuda(gpu)
+
+    # mediapipe face detection model
+    face_detection = mp.solutions.face_detection
+    face_mesh = mp.solutions.face_mesh
+    cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture('./video/test.mp4')
+    with face_detection.FaceDetection(
+            model_selection=1, min_detection_confidence=0.6) as face_detection:
+        while cap.isOpened():
+            start = time.time()
+            success, image = cap.read()
+            if not success:
+                print("Ignoring empty camera frame.")
+                # If loading a video, use 'break' instead of 'continue'.
+                # continue
+                continue
+            image = cv2.flip(image, 1)
+
+            img_h, img_w, img_c = image.shape
+            # To improve performance, optionally mark the image as not writeable to
+            image.flags.writeable = False
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = face_detection.process(image)
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            if results.detections:  # face detected
+                # get bounding box
+                detection = results.detections
+                bbox = detection[0].location_data.relative_bounding_box
+                bbox_points = {
+                    "xmin": int(bbox.xmin * img_w),
+                    "ymin": int(bbox.ymin * img_h),
+                    "xmax": int(bbox.width * img_w + bbox.xmin * img_w),
+                    "ymax": int(bbox.height * img_h + bbox.ymin * img_h),
+                    "box_width": int(bbox.width),
+                    "box_height": int(bbox.height)
+                }
+                xmin = int(bbox.xmin * img_w)
+                ymin = int(bbox.ymin * img_h)
+                xmax = int(bbox.width * img_w + bbox.xmin * img_w)
+                ymax = int(bbox.height * img_h + bbox.ymin * img_h)
+
+                # 应该增加边界条件判断，防止坐标为负数或大于最大值，判断一下截取的图像形状，最好强行截成大的正方形，极端姿态下截不全人脸
+                bbox_width = abs(xmax - xmin)
+                bbox_height = abs(ymax - ymin)
+                xmin -= 2 * bbox_width / 4
+                xmax += 2 * bbox_width / 4
+                ymin -= 3 * bbox_height / 4
+                ymax += bbox_height / 4
+                xmin = int(max(xmin, 0))
+                ymin = int(max(ymin, 0))
+                xmax = int(min(img_h, xmax))
+                ymax = int(min(img_w, ymax))
+                # Crop image
+                img_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)[ymin:ymax,
+                                                                 xmin:xmax]
+                img_RGB = Image.fromarray(img_RGB)
+
+                img_RGB = transformations(img_RGB)
+
+                img_RGB = img_RGB.unsqueeze(0).numpy()
+
+                ort_inputs = {'input': img_RGB}
+                pred_logits = ort_session.run(
+                    ['yaw', 'pitch', 'roll'], ort_inputs)
+                pred_logits = np.array(pred_logits)
+                pred_logits = torch.tensor(pred_logits).cuda(gpu)
+
+                yaw_predicted = F.softmax(pred_logits[0], dim=1)
+                pitch_predicted = F.softmax(pred_logits[1], dim=1)
+                roll_predicted = F.softmax(pred_logits[2], dim=1)
+                # Get continuous predictions in degrees.
+                yaw_predicted = torch.sum(
+                    yaw_predicted.data[0] * idx_tensor) * 3 - 99
+                pitch_predicted = torch.sum(
+                    pitch_predicted.data[0] * idx_tensor) * 3 - 99
+                roll_predicted = torch.sum(
+                    roll_predicted.data[0] * idx_tensor) * 3 - 99
+
+                # utils.plot_pose_cube(image,
+                #                      yaw_predicted,
+                #                      pitch_predicted,
+                #                      roll_predicted, (xmin + xmax) / 2,
+                #                      (ymin + ymax) / 2,
+                #                      size=bbox_width)
+                utils.draw_axis(image,
+                                yaw_predicted,
+                                pitch_predicted,
+                                roll_predicted,
+                                tdx=(xmin + xmax) / 2,
+                                tdy=(ymin + ymax) / 2,
+                                size=bbox_height / 2)
+                # Plot expanded bounding box
+                cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (0, 255, 0),
+                              1)
+                end = time.time()
+                total = end - start
+                fps = 1 / total
+                cv2.putText(
+                    image,
+                    f"roll:{int(roll_predicted)} pitch:{int(pitch_predicted)} yaw:{int(yaw_predicted)}",
+                    (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(image, f'FPS: {int(fps)}', (0, 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+            cv2.imshow('MediaPipe Face Mesh', image)
+
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+    cap.release()
